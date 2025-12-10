@@ -6,8 +6,8 @@
 # Autor / Author:         Igo da Costa Andrade
 # GitHub:                 https://github.com/costandrad
 # TikTok:                 https://www.tiktok.com/@igoandrade
-# Repositório / Repo:     <coloque aqui, se houver>
-# Data / Date:            <AAAA-MM-DD>
+# Repositório / Repo:     https://github.com/costandrad/chaos-game-sierpinski-triangle
+# Data / Date:            <2025-12-10>
 #
 # ---------------------------------------------------------------------------
 # DESCRIÇÃO (PT-BR):
@@ -54,7 +54,7 @@ begin
     ###############################################################################
     # CONFIGURAÇÕES GERAIS DA ANIMAÇÃO / GENERAL ANIMATION SETTINGS
     ###############################################################################
-    total_frames = 25             # Número total de quadros / Total number of frames
+    total_frames = 1500             # Número total de quadros / Total number of frames
     frame_rate   = 60             # FPS do vídeo / Frames per second of output
 
     width  = 1080                # Largura — formato vertical (TikTok/Reels) / Width — vertical format
@@ -171,4 +171,24 @@ begin
         tempdirectory = frames_dir,
         pathname      = joinpath(output_dir, "$(main_name).gif")
     )
+
+    ###############################################################################
+    # EXPORTAÇÃO OPCIONAL PARA MP4 (requer ffmpeg instalado)
+    # OPTIONAL MP4 EXPORT (requires ffmpeg installed)
+    ###############################################################################
+
+    # Caminho completo do arquivo de saída / Output MP4 file path
+    mp4_path = joinpath(output_dir, "$(main_name).mp4")
+
+    # Comando ffmpeg
+    cmd = `ffmpeg -r $frame_rate -i "$frames_dir/%10d.png" -c:v h264 -crf 0 "$mp4_path"`
+
+    println("\nGerando MP4 com ffmpeg...\nGenerating MP4 with ffmpeg...\n")
+    println(cmd)
+
+    # Executa o comando / Execute the command
+    run(cmd)
+
+    println("\nMP4 gerado em: $mp4_path\nMP4 generated at: $mp4_path")
+
 end
