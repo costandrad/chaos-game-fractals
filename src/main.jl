@@ -1,45 +1,30 @@
 ###############################################################################
-# ANIMAÇÃO DO TRIÂNGULO DE SIERPINSKI — Jogo do Caos
 # SIERPINSKI TRIANGLE ANIMATION — Chaos Game Method
-# Usando / Using Luxor.jl
+# Using Luxor.jl
 #
-# Autor / Author:         Igo da Costa Andrade
-# GitHub:                 https://github.com/costandrad
-# TikTok:                 https://www.tiktok.com/@igoandrade
-# Repositório / Repo:     https://github.com/costandrad/chaos-game-sierpinski-triangle
-# Data / Date:            <2025-12-10>
+# Author:              Igo da Costa Andrade
+# GitHub:              https://github.com/costandrad
+# TikTok:              https://www.tiktok.com/@igoandrade
+# Repository:          https://github.com/costandrad/chaos-game-sierpinski-triangle
+# Date:                <2025-12-10>
 #
-# ---------------------------------------------------------------------------
-# DESCRIÇÃO (PT-BR):
-#   Este script cria uma animação vertical (formato TikTok — 1080×1920)
-#   mostrando o processo iterativo conhecido como "Jogo do Caos" (Chaos Game),
-#   que gera o famoso Triângulo de Sierpinski.
-#
-#   O código:
-#     • Gera imagens quadro a quadro com Luxor.jl
-#     • Mantém os pontos acumulados ao longo da animação
-#     • Exporta automaticamente um GIF (e opcionalmente um MP4 via ffmpeg)
-#     • Organiza toda a saída na pasta /output
-#
-# ---------------------------------------------------------------------------
-# DESCRIPTION (EN):
+# DESCRIPTION:
 #   This script creates a vertical animation (TikTok format — 1080×1920)
 #   showing the iterative process known as the "Chaos Game", which constructs
-#   the well-known Sierpinski Triangle.
+#   the famous Sierpinski Triangle.
 #
 #   The code:
 #     • Generates frame-by-frame images using Luxor.jl
-#     • Keeps all generated points accumulated throughout the animation
+#     • Keeps all generated points throughout the animation
 #     • Automatically exports a GIF (and optionally an MP4 using ffmpeg)
-#     • Organizes all output under the /output directory
+#     • Organizes all output inside /output
 #
-# Licença / License:      <MIT>
+# License: MIT
 ###############################################################################
 
-using Luxor, Random, Printf
+using Luxor, Colors, Random, Printf
 
 # ---------------------------------------------------------------------------
-# Função auxiliar: recria um diretório (remove se existir e cria novo)
 # Utility function: recreate a directory (remove if exists, then create)
 # ---------------------------------------------------------------------------
 function create_dir(complete_dir_name)
@@ -49,35 +34,83 @@ function create_dir(complete_dir_name)
     mkdir(complete_dir_name)
 end
 
+# ---------------------------------------------------------------------------
+# Color function: calculates a vibrant HSV tone based on angle/distance
+# ---------------------------------------------------------------------------
+function vibrant_on_black(point, radius)
+    x = point.x
+    y = point.y
+
+    r = sqrt(x^2 + y^2)
+
+    θ = atan(y, x)
+    hue_deg = ifelse(θ >= 0, rad2deg(θ), rad2deg(θ) + 360)
+
+    s = 0.4 + 0.1*(1 - r/radius)
+    v = 0.9 + 0.1*(1 - r/radius)
+
+    return HSV(hue_deg, s, v)
+end
+
+# ---------------------------------------------------------------------------
+# Computes the optimal chaos-game ratio for n-sided polygons
+# ---------------------------------------------------------------------------
+function optimal_rate(n)
+    if n % 4 == 0
+        r_opt = 1/(1 + tan(π/n))
+    elseif n % 4 == 2
+        r_opt = 1/(1 + sin(π/n))
+    else
+        r_opt = 1/(1 + 2 * sin(π/(2n)))
+    end
+    return r_opt
+end
+
 
 begin
     ###############################################################################
-    # CONFIGURAÇÕES GERAIS DA ANIMAÇÃO / GENERAL ANIMATION SETTINGS
+    # GENERAL ANIMATION SETTINGS
     ###############################################################################
-    total_frames = 2500          # Número total de quadros / Total number of frames
-    frame_rate   = 120           # FPS do vídeo / Frames per second of output
+    duration = 20     # seconds
+    frame_rate   = 144
+    total_frames = frame_rate * duration
 
-    width  = 1080                # Largura — formato vertical / Width — vertical format
-    height = 1920                # Altura — formato 9:16 / Height — 9:16 aspect ratio
-    color_points = "cyan"
+    width  = 1080
+    height = 1920
 
+    polygons = Dict(
+        3  => "Triangle",
+        4  => "Square",
+        5  => "Pentagon",
+        6  => "Hexagon",
+        7  => "Heptagon",
+        8  => "Octagon",
+        9  => "Nonagon",
+        10 => "Decagon",
+        11 => "Hendecagon",
+        12 => "Dodecagon",
+        20 => "Icosagon"
+    )
 
     ###############################################################################
-    # PARÂMETROS DO TRIÂNGULO DE SIERPINSKI / SIERPINSKI TRIANGLE PARAMETERS
+    # CHAOS GAME PARAMETERS
     ###############################################################################
-    n    = 3                     # Número de vértices (triângulo) / Number of vertices (triangle)
-    α    = 2π / n                # Ângulo entre vértices / Angle between vertices
-    raio = 0.5 * width           # Raio do círculo circunscrito ao triângulo (R) / Radius of the circumscribed triangle's circle (R)
+    n = 5
+    α = 2π / n
+    radius = 0.45 * width
+    r_opt = optimal_rate(n)
+    polygon_name = polygons[n]
 
-    # Armazena todos os pontos gerados pelo Jogo do Caos / Stores all points generated by Chaos Game
     positions = [Point(0, 0)]
 
 
     ###############################################################################
-    # ESTRUTURA DE PASTAS (OUTPUT / FRAMES) / FOLDER STRUCTURE (OUTPUT / FRAMES)
+    # FOLDER STRUCTURE
     ###############################################################################
     project_dir = pwd()
-    main_name   = @sprintf("sierpinski_anim_f%d_fps%d", total_frames, frame_rate)
+    main_name   = replace(@sprintf("%s_ropt%.3f_f%d_fps%d",
+                                   polygon_name, r_opt, total_frames, frame_rate),
+                          "." => "_")
 
     output_dir = joinpath(project_dir, "output", main_name)
     frames_dir = joinpath(output_dir, "frames")
@@ -85,89 +118,78 @@ begin
     create_dir(output_dir)
     create_dir(frames_dir)
 
-    julia_logo = readpng("assets/images/luxor-logo.png")
-
-
     ###############################################################################
-    # CRIAÇÃO DO OBJETO MOVIE / CREATION OF MOVIE OBJECT
+    # MOVIE OBJECT
     ###############################################################################
     movie_sierpinski = Movie(width, height, main_name, 1:total_frames)
 
-
     ###############################################################################
-    # FUNÇÃO DE CENÁRIO (FUNDO / TEXTOS) / BACKDROP FUNCTION (BACKGROUND / TEXT)
+    # BACKGROUND SCENE (TEXT / BACKDROP)
     ###############################################################################
     function backdrop(scene, frame)
         background("black")
 
-        # Título principal / Main title
         setfont("Arial Bold", 80)
         setcolor("white")
-        settext("Jogo do Caos",
-            Point(0, -0.35 * height),
+        settext("Chaos Game",
+            Point(0, -1.4 * radius),
             halign = "center", valign = "center")
 
-        # Subtítulo / Subtitle
-        setfont("Arial", 72)
-        settext("Triângulo de Sierpinski",
-            Point(0, 0.20 * height),
-            halign = "center", valign = "center")
-
-        # Número do frame / Frame number
         setfont("Arial", 60)
+        settext(@sprintf("%s (r = %.3f)", polygon_name, r_opt),
+            Point(0, - 1.2 * radius),
+            halign = "center", valign = "center")
+
+        setfont("Arial", 48)
         settext(@sprintf("n = %4d", frame),
-            Point(0, 0.25 * height),
+            Point(0, 1.2 * radius),
             halign = "center", valign = "center")
     end
 
-
     ###############################################################################
-    # FUNÇÃO DO MÉTODO DO JOGO DO CAOS (SIERPINSKI) / CHAOS GAME METHOD FUNCTION
+    # CHAOS GAME DRAWING FUNCTION
     ###############################################################################
-    function sierpinski(scene, frame)
-        # Cálculo dos vértices do triângulo / Compute the triangle vertices
+    function draw_pattern(scene, frame)
+        # Compute polygon vertices
         vertices = [
             Point(
-                raio * cos((k - 1) * α - π/2),
-                raio * sin((k - 1) * α - π/2)
+                radius * cos((k - 1) * α - π/2),
+                radius * sin((k - 1) * α - π/2)
             )
             for k in 1:n
         ]
 
-        # Desenha o triângulo base / Draw the base triangle
+        # Draw base polygon
         setline(3)
         setcolor("white")
-        ngon(Point(0, 0), raio, n, -π/2, action = :stroke)
+        ngon(Point(0, 0), radius, n, -π/2, action = :stroke)
 
-        # Parâmetros visuais das partículas / Visual parameters for points
-        setcolor(color_points)
+        # Chaos game step
+        vertex = vertices[rand(1:n)]
+        p = between(positions[end], vertex, r_opt)
 
-        # Passo do Jogo do Caos / Chaos Game step
-        vertice = vertices[rand(1:n)]
-        p = midpoint(positions[end], vertice)
-
-        # Guarda o ponto acumulado / Save the accumulated point
+        # Save new point
         push!(positions, p)
 
-        # Desenha a trilha acumulada / Draw all accumulated points
-        for point in positions
-            circle(point, 2, :fill)
+        # Draw accumulated points
+        for point in positions[5:end]
+            setcolor(vibrant_on_black(point, radius))
+            circle(point, 2.5, :fill)
         end
 
-        # Destaque do ponto atual / Highlight the current point
+        # Highlight current point
         setcolor("white")
         circle(p, 15, :fill)
     end
 
-
     ###############################################################################
-    # EXECUÇÃO DA ANIMAÇÃO / ANIMATION EXECUTION
+    # RUN ANIMATION
     ###############################################################################
     animate(
         movie_sierpinski,
         [
-            Scene(movie_sierpinski, backdrop,   1:total_frames),
-            Scene(movie_sierpinski, sierpinski, 1:total_frames)
+            Scene(movie_sierpinski, backdrop,     1:total_frames),
+            Scene(movie_sierpinski, draw_pattern, 1:total_frames)
         ],
         creategif     = true,
         framerate     = frame_rate,
@@ -176,22 +198,16 @@ begin
     )
 
     ###############################################################################
-    # EXPORTAÇÃO OPCIONAL PARA MP4 (requer ffmpeg instalado)
-    # OPTIONAL MP4 EXPORT (requires ffmpeg installed)
+    # OPTIONAL MP4 EXPORT (requires ffmpeg)
     ###############################################################################
-
-    # Caminho completo do arquivo de saída / Output MP4 file path
     mp4_path = joinpath(output_dir, "$(main_name).mp4")
 
-    # Comando ffmpeg
     cmd = `ffmpeg -r $frame_rate -i "$frames_dir/%10d.png" -c:v h264 -crf 0 "$mp4_path"`
 
-    println("\nGerando MP4 com ffmpeg...\nGenerating MP4 with ffmpeg...\n")
+    println("\nGenerating MP4 using ffmpeg...\n")
     println(cmd)
 
-    # Executa o comando / Execute the command
     run(cmd)
 
-    println("\nMP4 gerado em: $mp4_path\nMP4 generated at: $mp4_path")
-
+    println("\nMP4 generated at: $mp4_path")
 end
