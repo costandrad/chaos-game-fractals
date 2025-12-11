@@ -1,89 +1,242 @@
-## 🔺 Triângulo de Sierpinski Animado: O Jogo do Caos
+# Chaos Game Fractal Generator
 
-Este projeto utiliza a linguagem **Julia** e a biblioteca de gráficos **Luxor.jl** para criar uma animação vertical ($\text{1080} \times \text{1920}$ — formato $\text{9:16}$ para plataformas como TikTok e Reels) que demonstra o processo iterativo conhecido como **Jogo do Caos** (*Chaos Game*), o qual gera o famoso fractal do **Triângulo de Sierpinski**.
+## 1. Visão Geral
 
-### 🎲 O Jogo do Caos (*Chaos Game*)
+O script produz:
 
-O Triângulo de Sierpinski é um dos fractais mais conhecidos, e o Jogo do Caos é um método probabilístico surpreendentemente simples para construí-lo:
+* uma animação frame‑a‑frame do Chaos Game;
+* uma versão em **GIF** automaticamente;
+* uma versão em **MP4** usando `ffmpeg` (opcional);
+* todas as imagens organizadas dentro do diretório `output/`.
 
-1.  **Defina os Vértices:** Comece com os três vértices de um triângulo equilátero (ou, de forma mais geral, qualquer triângulo).
-2.  **Ponto Inicial:** Escolha um ponto inicial aleatório em qualquer lugar.
-3.  **Iteração:** Repita os seguintes passos indefinidamente:
-      * Escolha um dos três vértices aleatoriamente.
-      * Marque um novo ponto na metade exata do caminho entre o ponto atual e o vértice escolhido.
-      * O novo ponto torna-se o ponto atual para a próxima iteração.
+É possível alterar o número de lados do polígono para gerar outros atratores fractais.
 
-A animação mostra a acumulação desses pontos a cada quadro, revelando gradualmente a estrutura auto-similar do fractal.
+---
 
-### ⚙️ Pré-requisitos e Instalação
+## 2. Estrutura do Arquivo
 
-O projeto requer a linguagem Julia e o gerenciador de pacotes para as dependências.
+O arquivo está dividido nas seguintes partes principais:
 
-1.  **Instale Julia:** Baixe e instale a versão mais recente de Julia.
-2.  **Instale as Dependências do Projeto:**
-      * Navegue até o diretório do projeto no terminal.
-      * Inicie o ambiente Julia:
-        ```bash
-        julia
-        ```
-      * Ative o ambiente e instale os pacotes listados em `Project.toml` e `Manifest.toml`:
-        ```julia
-        julia> using Pkg
-        julia> Pkg.activate(".")
-        julia> Pkg.instantiate()
-        ```
-3.  **FFmpeg (Opcional, mas Recomendado):** Para exportar o vídeo final no formato MP4, você precisa ter o **FFmpeg** instalado e acessível no seu `$PATH`.
+1. **Cabeçalho e metadados**: informações do autor e descrição do projeto.
+2. **Imports**: carregamento de Luxor, Colors, Random e demais dependências.
+3. **Funções utilitárias**:
 
-### 🚀 Como Executar
+   * `create_dir` — recria diretórios de forma segura.
+   * `vibrant_on_black` — gera cores vibrantes em HSV.
+   * `optimal_rate` — calcula a taxa ideal do Chaos Game para *n*-gons.
+4. **Parâmetros gerais da animação**: resolução, fps, duração.
+5. **Configurações do Chaos Game**: número de lados, raio, vértices etc.
+6. **Organização de diretórios**: criação das pastas `output/` e `frames/`.
+7. **Objeto Movie do Luxor**.
+8. **Função de fundo (backdrop)**.
+9. **Função principal de desenho (draw_pattern)**.
+10. **Chamada principal para gerar a animação**.
+11. **Exportação opcional em MP4**.
 
-O script principal `src/main.jl` é auto-suficiente e orquestra a geração dos quadros, a criação do GIF e a conversão opcional para MP4.
+---
 
-1.  **Execute o script:**
-    ```bash
-    julia src/main.jl
-    ```
+## 3. Documentação das Funções
 
-### 🖼️ Estrutura de Saída
+### 3.1 `create_dir(path)`
 
-O script automaticamente cria a seguinte estrutura de pastas e arquivos no diretório raiz do projeto:
+Remove um diretório existente (se houver) e cria novamente.
 
+**Uso:**
+
+* Garante que a pasta de saída sempre comece vazia.
+
+**Argumentos:**
+
+* `path` — caminho completo do diretório.
+
+**Efeitos colaterais:**
+
+* Remove arquivos existentes (`rm(..., force=true, recursive=true)`).
+
+---
+
+### 3.2 `vibrant_on_black(point, radius)`
+
+Gera uma cor **vibrante e clara**, contrastando com o fundo preto.
+
+**Ideia principal:**
+
+* A cor depende do ângulo polar do ponto, criando um espectro circular.
+* A saturação/valor dependem da distância ao centro.
+
+**Retorna:**
+
+* Um objeto `HSV(hue, saturation, value)`.
+
+---
+
+### 3.3 `optimal_rate(n)`
+
+Computa a razão ideal para o Chaos Game em polígonos regulares.
+
+**Baseado em:**
+
+* aproximações geométricas conhecidas para formação de atratores.
+
+**Retorna:**
+
+* `r_opt ∈ (0,1)` — quanto a posição se move em direção a um vértice.
+
+**Casos tratados:**
+
+* `n % 4 == 0`
+* `n % 4 == 2`
+* qualquer outro caso
+
+---
+
+## 4. Parâmetros Globais da Animação
+
+* **Duração**: 20 s
+* **FPS**: 144
+* **Resolução**: 1080 × 1920
+* **Total de frames**: `duration * fps`
+
+### Polígonos disponíveis
+
+Um dicionário mapeia número de lados → nome:
+
+* 3 → Triangle
+* 4 → Square
+* ...
+* 12 → Dodecagon
+* 20 → Icosagon
+
+O usuário pode alterar `n = 5` para escolher o polígono.
+
+### Parâmetros do Chaos Game
+
+* `α = 2π/n` — ângulo entre vértices.
+* `radius = 0.45 * width` — tamanho do polígono.
+* `r_opt = optimal_rate(n)` — taxa ideal.
+* `positions = [Point(0,0)]` — lista acumulada de pontos.
+
+---
+
+## 5. Organização de Diretórios
+
+Três pastas são criadas:
+
+* **output/** — pasta principal do projeto.
+* **frames/** — todos os PNGs temporários.
+* arquivo final `.gif` + `.mp4`.
+
+Essas pastas são geradas com segurança por `create_dir`.
+
+---
+
+## 6. Construção da Animação com Luxor
+
+### 6.1 Objeto Movie
+
+```julia
+movie_sierpinski = Movie(width, height, main_name, 1:total_frames)
 ```
-├── output
-│   └── sierpinski_anim_f1500_fps60/ # Nome da pasta gerado automaticamente
-│       ├── frames/
-│       │   ├── 0000000001.png
-│       │   ├── 0000000002.png
-│       │   └── ...
-│       ├── sierpinski_anim_f1500_fps60.gif  # Animação GIF gerada pelo Luxor
-│       └── sierpinski_anim_f1500_fps60.mp4  # Vídeo MP4 gerado pelo FFmpeg
+
+Gerencia a renderização de cada frame.
+
+---
+
+### 6.2 Função `backdrop(scene, frame)`
+
+Desenha:
+
+* fundo preto;
+* título "Chaos Game";
+* nome do polígono + taxa r;
+* número do frame.
+
+Usa `setfont`, `settext`, e alinhamento centrado.
+
+---
+
+### 6.3 Função `draw_pattern(scene, frame)`
+
+É o **coração da animação**.
+
+Passos:
+
+1. Calcula os vértices do polígono regular.
+2. Desenha o polígono base.
+3. Executa um passo do Chaos Game:
+
+   * seleciona vértice aleatório;
+   * interpola usando `between` com `r_opt`;
+   * salva a posição.
+4. Desenha todos os pontos anteriores:
+
+   * com cores de `vibrant_on_black`.
+5. Destaca o ponto atual com um círculo branco.
+
+Assim, o fractal emerge gradualmente.
+
+---
+
+## 7. Geração da Animação
+
+A animação é criada com:
+
+```julia
+animate(
+    movie_sierpinski,
+    [
+        Scene(movie_sierpinski, backdrop,     1:total_frames),
+        Scene(movie_sierpinski, draw_pattern, 1:total_frames)
+    ],
+    creategif     = true,
+    framerate     = frame_rate,
+    tempdirectory = frames_dir,
+    pathname      = joinpath(output_dir, "$(main_name).gif")
+)
 ```
 
-**Observação:** O nome da pasta de saída (`sierpinski_anim_f1500_fps60` no exemplo) é gerado dinamicamente com base no número de *frames* e na taxa de quadros (*FPS*) definidos no `main.jl`.
+O Luxor gera **todos os frames PNG** e depois cria o **GIF**.
 
-### 🛠️ Configurações Principais
+---
 
-Você pode ajustar os parâmetros da animação editando as seguintes variáveis no arquivo `src/main.jl`:
+## 8. Exportação MP4 via FFmpeg
 
-| Variável | Descrição | Valor Padrão |
-| :--- | :--- | :--- |
-| `total_frames` | Número total de quadros a serem gerados. | `1500` |
-| `frame_rate` | Taxa de quadros por segundo (FPS) do vídeo final. | `60` |
-| `width` | Largura do quadro em pixels. | `1080` |
-| `height` | Altura do quadro em pixels. | `1920` |
-| `n` | Número de vértices do polígono base (para Triângulo de Sierpinski, é `3`). | `3` |
+Opcionalmente, um comando é executado:
 
------
+```bash
+ffmpeg -r FPS -i "%10d.png" -c:v h264 -crf 0 output.mp4
+```
 
-### 📝 Licença
+* `-crf 0` garante qualidade máxima (lossless).
+* O arquivo final é salvo em `output/.../*.mp4`.
 
-Este projeto é distribuído sob a licença [**MIT**](https://mit-license.org/).
+---
 
------
+## 9. Como Modificar
 
-### 🔗 Autor
+### Alterar o polígono
 
-  * **Igo da Costa Andrade**
-  * **GitHub:** [https://github.com/costandrad](https://github.com/costandrad)
-  * **TikTok:** [https://www.tiktok.com/@igoandrade](https://www.tiktok.com/@igoandrade)
+Basta trocar:
 
------
+```julia
+n = 5
+```
+
+Para qualquer valor entre 3 e 20 definido no dicionário.
+
+### Aumentar resolução
+
+Modifique:
+
+```julia
+width, height
+```
+
+### Alterar duração ou FPS
+
+```julia
+duration = 20
+frame_rate = 144
+```
+
+---

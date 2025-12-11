@@ -1,26 +1,35 @@
 ###############################################################################
-# SIERPINSKI TRIANGLE ANIMATION — Chaos Game Method
+# Sierpinski Triangle — Chaos Game Animation
 # Using Luxor.jl
 #
-# Author:              Igo da Costa Andrade
-# GitHub:              https://github.com/costandrad
-# TikTok:              https://www.tiktok.com/@igoandrade
-# Repository:          https://github.com/costandrad/chaos-game-sierpinski-triangle
-# Date:                <2025-12-10>
+# Author:      Igo da Costa Andrade
+# GitHub:      https://github.com/costandrad
+# TikTok:      https://www.tiktok.com/@igoandrade
+# Repository:  https://github.com/costandrad/chaos-game-sierpinski-triangle
+# Date:        2025-12-10
 #
-# DESCRIPTION:
-#   This script creates a vertical animation (TikTok format — 1080×1920)
-#   showing the iterative process known as the "Chaos Game", which constructs
-#   the famous Sierpinski Triangle.
+# DESCRIPTION
+#   This script generates a vertical-format animation (1080×1920, suitable for
+#   TikTok/Reels) illustrating the iterative construction of the
+#   Sierpinski Triangle using the classical "Chaos Game" method.
 #
-#   The code:
-#     • Generates frame-by-frame images using Luxor.jl
-#     • Keeps all generated points throughout the animation
-#     • Automatically exports a GIF (and optionally an MP4 using ffmpeg)
-#     • Organizes all output inside /output
+#   Features:
+#     • Frame-by-frame rendering with Luxor.jl
+#     • Accumulation of all generated chaos-game points
+#     • Automatic GIF export (and optional lossless MP4 via ffmpeg)
+#     • Structured output folder inside /output/
 #
-# License: MIT
+#   About the Chaos Game:
+#     The chaotic iterative map repeatedly selects a polygon vertex at random
+#     and moves a fixed fraction toward it. Over many iterations, the orbit
+#     converges to a fractal attractor — e.g., the Sierpinski triangle when
+#     n = 3. This script supports general n-gons, using an "optimal" rate for
+#     fractal formation.
+#
+# LICENSE
+#   MIT License
 ###############################################################################
+
 
 using Luxor, Colors, Random, Printf
 
@@ -72,7 +81,7 @@ begin
     # GENERAL ANIMATION SETTINGS
     ###############################################################################
     duration = 20     # seconds
-    frame_rate   = 144
+    frame_rate   = 25
     total_frames = frame_rate * duration
 
     width  = 1080
@@ -95,7 +104,7 @@ begin
     ###############################################################################
     # CHAOS GAME PARAMETERS
     ###############################################################################
-    n = 5
+    n = 6
     α = 2π / n
     radius = 0.45 * width
     r_opt = optimal_rate(n)
