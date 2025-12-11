@@ -54,11 +54,12 @@ begin
     ###############################################################################
     # CONFIGURAÇÕES GERAIS DA ANIMAÇÃO / GENERAL ANIMATION SETTINGS
     ###############################################################################
-    total_frames = 2000          # Número total de quadros / Total number of frames
+    total_frames = 2500          # Número total de quadros / Total number of frames
     frame_rate   = 120           # FPS do vídeo / Frames per second of output
 
     width  = 1080                # Largura — formato vertical / Width — vertical format
     height = 1920                # Altura — formato 9:16 / Height — 9:16 aspect ratio
+    color_points = "cyan"
 
 
     ###############################################################################
@@ -83,6 +84,8 @@ begin
 
     create_dir(output_dir)
     create_dir(frames_dir)
+
+    julia_logo = readpng("assets/images/luxor-logo.png")
 
 
     ###############################################################################
@@ -137,7 +140,7 @@ begin
         ngon(Point(0, 0), raio, n, -π/2, action = :stroke)
 
         # Parâmetros visuais das partículas / Visual parameters for points
-        setcolor("blue")
+        setcolor(color_points)
 
         # Passo do Jogo do Caos / Chaos Game step
         vertice = vertices[rand(1:n)]
@@ -148,7 +151,7 @@ begin
 
         # Desenha a trilha acumulada / Draw all accumulated points
         for point in positions
-            circle(point, 3, :fill)
+            circle(point, 2, :fill)
         end
 
         # Destaque do ponto atual / Highlight the current point
