@@ -97,12 +97,12 @@ polygon_names = Dict(
     20 => "Icosagon"
 )
 
-num_sides = 11
+num_sides = 3
 central_angle = 2π / num_sides
 polygon_radius = 0.45 * canvas_width
 
 contraction_ratio = optimal_contraction_ratio(num_sides)
-polygon_label = polygon_names[num_sides]
+polygon_label = num_sides == 3 ? "Sierpinski Triangle" : polygon_names[num_sides]
 
 ###############################################################################
 # CHAOS GAME DATA GENERATION
@@ -180,11 +180,20 @@ function draw_background(scene, frame)
     ngon(Point(0, 0), polygon_radius, num_sides, -π/2, action = :stroke)
 
     setfont("Arial", 60)
-    settext(
-        @sprintf("%s (r = %.3f)", polygon_label, contraction_ratio),
-        Point(0, -1.2 * polygon_radius),
-        halign = "center", valign = "center"
-    )
+    if num_sides == 3
+        settext(
+            @sprintf("%s", polygon_label),
+            Point(0, -1.2 * polygon_radius),
+            halign = "center", valign = "center"
+        )
+    else
+        settext(
+            @sprintf("%s (r = %.3f)", polygon_label, contraction_ratio),
+            Point(0, -1.2 * polygon_radius),
+            halign = "center", valign = "center"
+        )
+    end
+
 end
 
 ###############################################################################
