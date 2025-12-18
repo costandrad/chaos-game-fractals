@@ -1,242 +1,217 @@
-# Chaos Game Fractal Generator
+# Chaos Game — Fractal Animation (Luxor.jl)
 
-## 1. Visão Geral
+## Overview
 
-O script produz:
+This project generates **high‑resolution vertical animations (1080×1920)** of the **Chaos Game** applied to regular polygons, optimized for platforms such as **TikTok, Instagram Reels, and YouTube Shorts**.
 
-* uma animação frame‑a‑frame do Chaos Game;
-* uma versão em **GIF** automaticamente;
-* uma versão em **MP4** usando `ffmpeg` (opcional);
-* todas as imagens organizadas dentro do diretório `output/`.
+Using simple geometric rules and randomness, the Chaos Game reveals striking **fractal attractors**, including the famous **Sierpinski Triangle** (for `n = 3`) and related polygonal fractals for higher *n*.
 
-É possível alterar o número de lados do polígono para gerar outros atratores fractais.
+The animation is rendered **frame‑by‑frame with Luxor.jl**, exported automatically as a **GIF**, and can optionally be converted to a **lossless MP4** using `ffmpeg`.
 
 ---
 
-## 2. Estrutura do Arquivo
+## Key Features
 
-O arquivo está dividido nas seguintes partes principais:
-
-1. **Cabeçalho e metadados**: informações do autor e descrição do projeto.
-2. **Imports**: carregamento de Luxor, Colors, Random e demais dependências.
-3. **Funções utilitárias**:
-
-   * `create_dir` — recria diretórios de forma segura.
-   * `vibrant_on_black` — gera cores vibrantes em HSV.
-   * `optimal_rate` — calcula a taxa ideal do Chaos Game para *n*-gons.
-4. **Parâmetros gerais da animação**: resolução, fps, duração.
-5. **Configurações do Chaos Game**: número de lados, raio, vértices etc.
-6. **Organização de diretórios**: criação das pastas `output/` e `frames/`.
-7. **Objeto Movie do Luxor**.
-8. **Função de fundo (backdrop)**.
-9. **Função principal de desenho (draw_pattern)**.
-10. **Chamada principal para gerar a animação**.
-11. **Exportação opcional em MP4**.
+* 🎥 Vertical animation (1080×1920)
+* 🧮 Chaos Game for arbitrary regular polygons
+* 🎨 HSV color mapping based on polar angle (high contrast on black)
+* 🌀 Accumulation of up to **100,000 iterations**
+* 🖼️ Automatic **GIF** generation
+* 🎞️ Optional **lossless MP4** export via `ffmpeg`
+* 📁 Clean, structured output directory per animation
 
 ---
 
-## 3. Documentação das Funções
+## The Chaos Game (Concept)
 
-### 3.1 `create_dir(path)`
+At each iteration:
 
-Remove um diretório existente (se houver) e cria novamente.
+1. Start with a regular polygon and an initial point **P**.
+2. Choose a polygon vertex **V** at random.
+3. Move **P** a fixed fraction ( r ) toward **V**.
+4. Repeat the process many times.
 
-**Uso:**
-
-* Garante que a pasta de saída sempre comece vazia.
-
-**Argumentos:**
-
-* `path` — caminho completo do diretório.
-
-**Efeitos colaterais:**
-
-* Remove arquivos existentes (`rm(..., force=true, recursive=true)`).
+Although the rule is simple, the orbit converges to a **fractal attractor**, whose structure depends on the number of polygon sides and the contraction ratio ( r ).
 
 ---
 
-### 3.2 `vibrant_on_black(point, radius)`
+## Project Structure
 
-Gera uma cor **vibrante e clara**, contrastando com o fundo preto.
+The Julia script `chaos_game_v2.jl` is organized into the following sections:
 
-**Ideia principal:**
-
-* A cor depende do ângulo polar do ponto, criando um espectro circular.
-* A saturação/valor dependem da distância ao centro.
-
-**Retorna:**
-
-* Um objeto `HSV(hue, saturation, value)`.
-
----
-
-### 3.3 `optimal_rate(n)`
-
-Computa a razão ideal para o Chaos Game em polígonos regulares.
-
-**Baseado em:**
-
-* aproximações geométricas conhecidas para formação de atratores.
-
-**Retorna:**
-
-* `r_opt ∈ (0,1)` — quanto a posição se move em direção a um vértice.
-
-**Casos tratados:**
-
-* `n % 4 == 0`
-* `n % 4 == 2`
-* qualquer outro caso
+1. **Header & metadata** — author, repository, description
+2. **Imports** — `Luxor`, `Colors`, `Random`, `Printf`
+3. **Filesystem utilities** — safe recreation of output directories
+4. **Color & geometry utilities** — HSV coloring and optimal contraction ratio
+5. **Global animation parameters** — resolution, FPS
+6. **Polygon configuration** — number of sides, radius, labels
+7. **Chaos Game data generation** — orbit precomputation
+8. **Output structure** — `/output/<animation_name>/frames`
+9. **Luxor Movie object**
+10. **Scene 1** — background and static elements
+11. **Scene 2** — Chaos Game evolution
+12. **Rendering & export** — GIF, PNG snapshot, optional MP4
 
 ---
 
-## 4. Parâmetros Globais da Animação
+## Main Utility Functions
 
-* **Duração**: 20 s
-* **FPS**: 144
-* **Resolução**: 1080 × 1920
-* **Total de frames**: `duration * fps`
+### `create_directory(path)`
 
-### Polígonos disponíveis
+Recreates a directory safely.
 
-Um dicionário mapeia número de lados → nome:
+* Removes the directory if it already exists
+* Creates a fresh, empty directory
 
-* 3 → Triangle
-* 4 → Square
-* ...
+Used to ensure reproducible animation outputs.
+
+---
+
+### `polar_hsv_color(p::Point)`
+
+Generates a bright HSV color based on the **polar angle** of a point.
+
+* Hue is mapped to the angle ( \theta = \arctan(y/x) )
+* Produces vivid colors with excellent contrast on black backgrounds
+
+Returns an `HSV` color.
+
+---
+
+### `optimal_contraction_ratio(n::Int)`
+
+Computes an empirically optimal contraction ratio ( r ) for regular *n*-gons.
+
+Different formulas are used depending on `n mod 4`, ensuring well‑formed fractal attractors.
+
+Returns:
+
+* `r ∈ (0, 1)` — fraction of the distance moved toward the chosen vertex
+
+---
+
+## Animation Parameters
+
+### Global Settings
+
+* **Resolution**: `1080 × 1920`
+* **Frame rate**: `25 fps`
+* **Iterations**: `100_000`
+* **Points per frame**: `500`
+
+An introductory sequence explains the Chaos Game rules before the full fractal emerges.
+
+---
+
+## Polygon Configuration
+
+Supported polygons are defined via a dictionary:
+
+* 3  → Triangle (Sierpinski Triangle)
+* 4  → Square
+* 5  → Pentagon
+* 6  → Hexagon
+* …
 * 12 → Dodecagon
 * 20 → Icosagon
 
-O usuário pode alterar `n = 5` para escolher o polígono.
-
-### Parâmetros do Chaos Game
-
-* `α = 2π/n` — ângulo entre vértices.
-* `radius = 0.45 * width` — tamanho do polígono.
-* `r_opt = optimal_rate(n)` — taxa ideal.
-* `positions = [Point(0,0)]` — lista acumulada de pontos.
-
----
-
-## 5. Organização de Diretórios
-
-Três pastas são criadas:
-
-* **output/** — pasta principal do projeto.
-* **frames/** — todos os PNGs temporários.
-* arquivo final `.gif` + `.mp4`.
-
-Essas pastas são geradas com segurança por `create_dir`.
-
----
-
-## 6. Construção da Animação com Luxor
-
-### 6.1 Objeto Movie
+To change the polygon, simply edit:
 
 ```julia
-movie_sierpinski = Movie(width, height, main_name, 1:total_frames)
+num_sides = 3
 ```
 
-Gerencia a renderização de cada frame.
+The contraction ratio and labels are computed automatically.
 
 ---
 
-### 6.2 Função `backdrop(scene, frame)`
+## Output Structure
 
-Desenha:
+For each run, the following directory tree is created:
 
-* fundo preto;
-* título "Chaos Game";
-* nome do polígono + taxa r;
-* número do frame.
-
-Usa `setfont`, `settext`, e alinhamento centrado.
-
----
-
-### 6.3 Função `draw_pattern(scene, frame)`
-
-É o **coração da animação**.
-
-Passos:
-
-1. Calcula os vértices do polígono regular.
-2. Desenha o polígono base.
-3. Executa um passo do Chaos Game:
-
-   * seleciona vértice aleatório;
-   * interpola usando `between` com `r_opt`;
-   * salva a posição.
-4. Desenha todos os pontos anteriores:
-
-   * com cores de `vibrant_on_black`.
-5. Destaca o ponto atual com um círculo branco.
-
-Assim, o fractal emerge gradualmente.
-
----
-
-## 7. Geração da Animação
-
-A animação é criada com:
-
-```julia
-animate(
-    movie_sierpinski,
-    [
-        Scene(movie_sierpinski, backdrop,     1:total_frames),
-        Scene(movie_sierpinski, draw_pattern, 1:total_frames)
-    ],
-    creategif     = true,
-    framerate     = frame_rate,
-    tempdirectory = frames_dir,
-    pathname      = joinpath(output_dir, "$(main_name).gif")
-)
+```text
+output/
+└── <animation_name>/
+    ├── frames/          # individual PNG frames
+    ├── <name>.gif       # animated GIF
+    ├── <name>.png       # final frame snapshot
+    └── <name>.mp4       # optional lossless video
 ```
 
-O Luxor gera **todos os frames PNG** e depois cria o **GIF**.
+The animation name encodes:
+
+* polygon type
+* contraction ratio
+* total frames
+* frame rate
 
 ---
 
-## 8. Exportação MP4 via FFmpeg
+## Animation Scenes
 
-Opcionalmente, um comando é executado:
+### Scene 1 — Background & Geometry
+
+* Black background
+* Title: **Chaos Game**
+* Polygon outline
+* Polygon name and contraction ratio
+
+---
+
+### Scene 2 — Chaos Game Evolution
+
+The animation proceeds through five explanatory stages:
+
+1. Initial point and polygon
+2. Random vertex selection
+3. Movement toward the vertex
+4. Iterative accumulation of points
+5. Emergence of the fractal attractor
+
+As the animation progresses, thousands of colored points reveal the fractal structure.
+
+---
+
+## Rendering & Export
+
+The animation is rendered using Luxor’s `animate` function:
+
+* All frames are generated as PNG files
+* A **GIF** is created automatically
+* The final frame is saved separately as a PNG
+
+### Optional MP4 Export
+
+If `ffmpeg` is installed, a **lossless MP4** is generated:
 
 ```bash
-ffmpeg -r FPS -i "%10d.png" -c:v h264 -crf 0 output.mp4
+ffmpeg -r <fps> -i "%10d.png" -c:v h264 -crf 0 output.mp4
 ```
 
-* `-crf 0` garante qualidade máxima (lossless).
-* O arquivo final é salvo em `output/.../*.mp4`.
+* `-crf 0` ensures maximum quality
+* Ideal for archival or social‑media uploads
 
 ---
 
-## 9. Como Modificar
+## Requirements
 
-### Alterar o polígono
-
-Basta trocar:
-
-```julia
-n = 5
-```
-
-Para qualquer valor entre 3 e 20 definido no dicionário.
-
-### Aumentar resolução
-
-Modifique:
-
-```julia
-width, height
-```
-
-### Alterar duração ou FPS
-
-```julia
-duration = 20
-frame_rate = 144
-```
+* Julia ≥ 1.9
+* `Luxor.jl`
+* `Colors.jl`
+* `ffmpeg` (optional, for MP4 export)
 
 ---
+
+## Author
+
+**Igo da Costa Andrade**
+
+GitHub: [https://github.com/costandrad](https://github.com/costandrad)
+
+TikTok: [https://www.tiktok.com/@igoandrade](https://www.tiktok.com/@igoandrade)
+---
+
+## License
+
+MIT License
+
