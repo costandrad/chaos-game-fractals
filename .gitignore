@@ -1,0 +1,53 @@
+############################
+# Julia
+############################
+
+# Diretórios de ambiente
+/.julia
+/Manifest.toml
+
+# Pacotes e artefatos
+/artifacts/
+/deps/
+/compiled/
+
+# Cache e arquivos temporários
+*.ji
+*.log
+*.tmp
+
+############################
+# Resultados e mídia
+############################
+
+# Frames de animações (em qualquer subdiretório)
+**/frames/
+
+
+
+############################
+# IDEs e editores
+############################
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+
+# Vim
+*.swp
+*.swo
+
+############################
+# Sistema operacional
+############################
+
+# Linux
+*~
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
